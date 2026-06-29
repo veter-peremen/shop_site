@@ -1,0 +1,39 @@
+name: sonkei
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sonkei
+      POSTGRES_PASSWORD: sonkei
+      POSTGRES_DB: sonkei
+    ports:
+      - "5432:5432"
+    volumes:
+      - sonkei_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonkei"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sonkei:sonkei@db:5432/sonkei?sslmode=disable}
+      CAPTCHA_SECRET: ${CAPTCHA_SECRET:-}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sonkei_db_data:

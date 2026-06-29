@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env*.local
+npm-debug.log*
+README.md
+TZ_SONKEI_site.md
+tsconfig.tsbuildinfo
+go проект
+*.log
+coverage
+dist
+out
+scripts/tmp-*
