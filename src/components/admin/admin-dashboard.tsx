@@ -91,6 +91,7 @@ export function AdminDashboard({
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({
     slug: "",
+    sku: "",
     nameRu: "",
     nameEn: "",
     category: "diapers" as (typeof CATEGORIES)[number],
@@ -98,7 +99,39 @@ export function AdminDashboard({
     size: "",
     count: "",
     price: "",
+    bonusPoints: "",
   });
+  const [newProductImages, setNewProductImages] = useState<File[]>([]);
+  const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+
+  async function uploadProductImage(id: string, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await csrfFetch(`/api/admin/products/${id}/images`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) {
+      throw new Error("upload-failed");
+    }
+    const data = await response.json();
+    setDraftProducts((current) => current.map((p) => (p.id === id ? data.product : p)));
+    return data.product;
+  }
+
+  async function handleRemoveProductImage(id: string, url: string) {
+    const response = await csrfFetch(`/api/admin/products/${id}/images`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!response.ok) {
+      setProductError(locale === "ru" ? "Не удалось удалить изображение" : "Failed to remove image");
+      return;
+    }
+    const data = await response.json();
+    setDraftProducts((current) => current.map((p) => (p.id === id ? data.product : p)));
+  }
   const [expandedSeoId, setExpandedSeoId] = useState<string | null>(null);
   const [seoDraft, setSeoDraft] = useState<Record<string, { seoTitle: string; seoDescription: string }>>({});
 
@@ -138,11 +171,18 @@ export function AdminDashboard({
       return;
     }
 
+    const bonusPoints = newProduct.bonusPoints.trim() ? Number(newProduct.bonusPoints) : undefined;
+    if (bonusPoints !== undefined && (!Number.isFinite(bonusPoints) || bonusPoints < 0)) {
+      setProductError(locale === "ru" ? "Некорректное количество бонусов" : "Invalid bonus points");
+      return;
+    }
+
     const response = await csrfFetch("/api/admin/products", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         slug: newProduct.slug,
+        sku: newProduct.sku.trim() || undefined,
         nameRu: newProduct.nameRu,
         nameEn: newProduct.nameEn,
         category: newProduct.category,
@@ -150,6 +190,7 @@ export function AdminDashboard({
         size: newProduct.size,
         count,
         price,
+        bonusPoints,
       }),
     });
 
@@ -168,9 +209,27 @@ export function AdminDashboard({
     }
 
     const data = await response.json();
-    setDraftProducts((current) => [data.product, ...current]);
+    let createdProduct = data.product;
+
+    if (newProductImages.length > 0) {
+      setUploadingImageId(createdProduct.id);
+      try {
+        for (const file of newProductImages) {
+          createdProduct = await uploadProductImage(createdProduct.id, file);
+        }
+      } catch {
+        setProductError(
+          locale === "ru" ? "Товар создан, но не удалось загрузить изображения" : "Product created, but image upload failed",
+        );
+      } finally {
+        setUploadingImageId(null);
+      }
+    }
+
+    setDraftProducts((current) => [createdProduct, ...current.filter((p) => p.id !== createdProduct.id)]);
     setNewProduct({
       slug: "",
+      sku: "",
       nameRu: "",
       nameEn: "",
       category: "diapers",
@@ -178,7 +237,9 @@ export function AdminDashboard({
       size: "",
       count: "",
       price: "",
+      bonusPoints: "",
     });
+    setNewProductImages([]);
     setShowNewProduct(false);
   }
 
@@ -682,6 +743,11 @@ export function AdminDashboard({
                     onChange={(e) => setNewProduct((c) => ({ ...c, slug: e.target.value }))}
                   />
                   <Input
+                    placeholder="SKU"
+                    value={newProduct.sku}
+                    onChange={(e) => setNewProduct((c) => ({ ...c, sku: e.target.value }))}
+                  />
+                  <Input
                     placeholder={locale === "ru" ? "Название RU" : "Name RU"}
                     value={newProduct.nameRu}
                     onChange={(e) => setNewProduct((c) => ({ ...c, nameRu: e.target.value }))}
@@ -732,7 +798,36 @@ export function AdminDashboard({
                     value={newProduct.price}
                     onChange={(e) => setNewProduct((c) => ({ ...c, price: e.target.value }))}
                   />
-                  <Button onClick={handleCreateProduct}>{locale === "ru" ? "Создать" : "Create"}</Button>
+                  <Input
+                    type="number"
+                    placeholder={locale === "ru" ? "Бонусы за покупку" : "Bonus points"}
+                    value={newProduct.bonusPoints}
+                    onChange={(e) => setNewProduct((c) => ({ ...c, bonusPoints: e.target.value }))}
+                  />
+                  <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground hover:border-bronze">
+                    <ImagePlus className="h-4 w-4" />
+                    {newProductImages.length > 0
+                      ? `${newProductImages.length} ${locale === "ru" ? "файл(ов)" : "file(s)"}`
+                      : locale === "ru"
+                        ? "Изображения"
+                        : "Images"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => setNewProductImages(Array.from(e.target.files ?? []))}
+                    />
+                  </label>
+                  <Button onClick={handleCreateProduct} disabled={uploadingImageId !== null}>
+                    {uploadingImageId !== null
+                      ? locale === "ru"
+                        ? "Загрузка..."
+                        : "Uploading..."
+                      : locale === "ru"
+                        ? "Создать"
+                        : "Create"}
+                  </Button>
                 </div>
               ) : null}
             </div>
@@ -748,6 +843,7 @@ export function AdminDashboard({
                     <th className="py-3 pr-4 font-medium">Size</th>
                     <th className="py-3 pr-4 font-medium">Stock</th>
                     <th className="py-3 pr-4 font-medium">Price</th>
+                    <th className="py-3 pr-4 font-medium">{locale === "ru" ? "Бонусы" : "Bonus"}</th>
                     <th className="py-3 pr-4 font-medium">{locale === "ru" ? "Активен" : "Active"}</th>
                     <th className="py-3 pr-4 font-medium"></th>
                   </tr>
@@ -759,7 +855,11 @@ export function AdminDashboard({
                         <td className="py-4 pr-4 text-muted-foreground">{product.sku}</td>
                         <td className="py-4 pr-4">
                           <div className="flex items-center gap-3">
-                            <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-secondary">
+                            <label
+                              className={`group relative h-12 w-12 overflow-hidden rounded-lg bg-secondary ${
+                                canManageProducts ? "cursor-pointer" : ""
+                              }`}
+                            >
                               {product.images[0] ? (
                                 <Image
                                   src={product.images[0]}
@@ -768,8 +868,51 @@ export function AdminDashboard({
                                   sizes="48px"
                                   className="object-contain p-1"
                                 />
+                              ) : (
+                                <span className="flex h-full w-full items-center justify-center">
+                                  <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                                </span>
+                              )}
+                              {uploadingImageId === product.id ? (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] text-white">
+                                  ...
+                                </span>
                               ) : null}
-                            </div>
+                              {canManageProducts ? (
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp,image/gif"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    e.target.value = "";
+                                    if (!file) return;
+                                    setUploadingImageId(product.id);
+                                    try {
+                                      await uploadProductImage(product.id, file);
+                                    } catch {
+                                      setProductError(
+                                        locale === "ru" ? "Не удалось загрузить изображение" : "Failed to upload image",
+                                      );
+                                    } finally {
+                                      setUploadingImageId(null);
+                                    }
+                                  }}
+                                />
+                              ) : null}
+                              {canManageProducts && product.images[0] ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleRemoveProductImage(product.id, product.images[0]);
+                                  }}
+                                  className="absolute right-0 top-0 hidden h-4 w-4 items-center justify-center bg-black/70 text-white group-hover:flex"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              ) : null}
+                            </label>
                             <span className="line-clamp-1">{localizedProductName(product, locale)}</span>
                           </div>
                         </td>
@@ -798,6 +941,20 @@ export function AdminDashboard({
                               const value = Number(e.target.value);
                               if (Number.isFinite(value) && value !== product.price) {
                                 patchProduct(product.id, { price: Math.max(0, Math.trunc(value)) });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="py-4 pr-4">
+                          <Input
+                            type="number"
+                            defaultValue={product.bonusPoints}
+                            disabled={!canManageProducts}
+                            className="h-9 w-20"
+                            onBlur={(e) => {
+                              const value = Number(e.target.value);
+                              if (Number.isFinite(value) && value !== product.bonusPoints) {
+                                patchProduct(product.id, { bonusPoints: Math.max(0, Math.trunc(value)) });
                               }
                             }}
                           />
@@ -842,7 +999,7 @@ export function AdminDashboard({
                       </tr>
                       {expandedSeoId === product.id ? (
                         <tr className="border-b border-border/70">
-                          <td colSpan={7} className="py-4 pr-4">
+                          <td colSpan={8} className="py-4 pr-4">
                             <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
                               <Input
                                 placeholder="SEO title"

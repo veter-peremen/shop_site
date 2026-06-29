@@ -281,6 +281,60 @@ export async function deleteProduct(
   });
 }
 
+export async function addProductImage(
+  adminId: string,
+  id: string,
+  imageUrl: string,
+): Promise<AdminProduct | null> {
+  return withTransaction(async (client) => {
+    const updated = await client.query<AdminProductRow>(
+      `update products set images = array_append(images, $2), updated_at = now()
+       where id = $1
+       returning ${ADMIN_PRODUCT_COLUMNS}`,
+      [id, imageUrl],
+    );
+
+    if (updated.rowCount === 0) {
+      return null;
+    }
+
+    await client.query(
+      `insert into audit_logs (admin_id, action, entity, entity_id, payload)
+       values ($1, 'product.image.add', 'product', $2, $3)`,
+      [adminId, id, JSON.stringify({ imageUrl })],
+    );
+
+    return mapRow(updated.rows[0]);
+  });
+}
+
+export async function removeProductImage(
+  adminId: string,
+  id: string,
+  imageUrl: string,
+): Promise<AdminProduct | null> {
+  return withTransaction(async (client) => {
+    const updated = await client.query<AdminProductRow>(
+      `update products set images = array_remove(images, $2), updated_at = now()
+       where id = $1
+       returning ${ADMIN_PRODUCT_COLUMNS}`,
+      [id, imageUrl],
+    );
+
+    if (updated.rowCount === 0) {
+      return null;
+    }
+
+    await client.query(
+      `insert into audit_logs (admin_id, action, entity, entity_id, payload)
+       values ($1, 'product.image.remove', 'product', $2, $3)`,
+      [adminId, id, JSON.stringify({ imageUrl })],
+    );
+
+    return mapRow(updated.rows[0]);
+  });
+}
+
 const EXPORT_COLUMNS = [
   "id",
   "slug",
