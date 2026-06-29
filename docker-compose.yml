@@ -30,7 +30,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       NODE_ENV: production
     volumes:
-      - sonkei_uploads_data:/app/public/uploads
+      - sonkei_uploads_data:/app/uploads
     ports:
       - "3000:3000"
     depends_on:

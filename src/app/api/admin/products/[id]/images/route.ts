@@ -16,7 +16,8 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
 };
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
+const UPLOAD_DIR = path.join(process.cwd(), "uploads", "products");
+const URL_PREFIX = "/api/uploads/products/";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const csrfError = await verifyCsrf(request);
@@ -50,7 +51,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
-  const product = await addProductImage(user.id, id, `/uploads/products/${filename}`);
+  const product = await addProductImage(user.id, id, `${URL_PREFIX}${filename}`);
 
   if (!product) {
     return NextResponse.json({ error: "not-found" }, { status: 404 });
@@ -72,7 +73,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const body = await request.json().catch(() => null);
   const imageUrl = body?.url;
 
-  if (typeof imageUrl !== "string" || !imageUrl.startsWith("/uploads/products/")) {
+  if (typeof imageUrl !== "string" || !imageUrl.startsWith(URL_PREFIX)) {
     return NextResponse.json({ error: "invalid-body" }, { status: 400 });
   }
 

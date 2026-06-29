@@ -10,5 +10,5 @@ coverage
 .claude
 tsconfig.tsbuildinfo
 /go проект
-public/uploads/products/*
-!public/uploads/products/.gitkeep
+uploads/products/*
+!uploads/products/.gitkeep
