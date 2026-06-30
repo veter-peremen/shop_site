@@ -19,7 +19,7 @@ type HomePageProps = {
 // Revalidate periodically so the homepage picks up products without a rebuild —
 // matters when the DB is empty/unreachable at build time (e.g. a fresh Docker image
 // before products are seeded), since this page 404s with an empty catalog.
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: HomePageProps) {
   const { locale: rawLocale } = await params;
