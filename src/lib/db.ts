@@ -1,4 +1,12 @@
+import dns from "node:dns";
+import net from "node:net";
 import { Pool, type QueryResultRow } from "pg";
+
+// Force IPv4: Docker containers on many VPS providers lack IPv6 routing.
+// Node.js 22 uses happy eyeballs (tries IPv6 + IPv4 simultaneously) which
+// causes ENETUNREACH errors when the container has no IPv6 route.
+dns.setDefaultResultOrder("ipv4first");
+(net as any).setDefaultAutoSelectFamily?.(false);
 
 declare global {
   var __sonkeiPgPool: Pool | undefined;
