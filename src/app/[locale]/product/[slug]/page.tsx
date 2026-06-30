@@ -17,7 +17,7 @@ type ProductPageProps = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   // If the database isn't reachable at build time (e.g. building a Docker image
