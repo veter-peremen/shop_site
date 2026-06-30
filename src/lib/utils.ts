@@ -20,11 +20,11 @@ export function localizedProductName(product: Product, locale: Locale) {
 }
 
 export function localizedProductShort(product: Product, locale: Locale) {
-  return locale === "ru" ? product.shortRu : product.shortEn;
+  return (locale === "ru" ? product.shortRu : product.shortEn) ?? "";
 }
 
 export function localizedProductDescription(product: Product, locale: Locale) {
-  return locale === "ru" ? product.descriptionRu : product.descriptionEn;
+  return (locale === "ru" ? product.descriptionRu : product.descriptionEn) ?? "";
 }
 
 export function lineLabel(line: Product["line"], locale: Locale) {
