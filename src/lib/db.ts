@@ -6,6 +6,7 @@ import { Pool, type QueryResultRow } from "pg";
 // Node.js 22 uses happy eyeballs (tries IPv6 + IPv4 simultaneously) which
 // causes ENETUNREACH errors when the container has no IPv6 route.
 dns.setDefaultResultOrder("ipv4first");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (net as any).setDefaultAutoSelectFamily?.(false);
 
 declare global {
