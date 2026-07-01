@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 
@@ -153,7 +154,7 @@ export async function createProduct(
       [
         id,
         input.slug,
-        input.sku ?? null,
+        input.sku ?? `SKN-${randomBytes(3).toString("hex").toUpperCase()}`, // auto-generated if not provided
         input.category,
         input.line,
         input.size,

@@ -27,6 +27,7 @@ import type { AdminProduct } from "@/lib/admin-products";
 import type { AuditLogEntry } from "@/lib/audit";
 import type { BonusTransaction } from "@/lib/bonus";
 import { csrfFetch } from "@/lib/csrf-client";
+import { ProductFormModal } from "@/components/admin/product-form-modal";
 import type { OrderSummary } from "@/lib/orders";
 import type { PromoCode } from "@/lib/promos";
 import type { SalesReport } from "@/lib/reports";
@@ -88,20 +89,9 @@ export function AdminDashboard({
   const [draftProducts, setDraftProducts] = useState<AdminProduct[]>(products);
   const [productError, setProductError] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
-  const [showNewProduct, setShowNewProduct] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    slug: "",
-    sku: "",
-    nameRu: "",
-    nameEn: "",
-    category: "diapers" as (typeof CATEGORIES)[number],
-    line: "daily" as (typeof LINES)[number],
-    size: "",
-    count: "",
-    price: "",
-    bonusPoints: "",
-  });
-  const [newProductImages, setNewProductImages] = useState<File[]>([]);
+  const [modalState, setModalState] = useState<
+    { mode: "create" } | { mode: "edit"; product: AdminProduct } | null
+  >(null);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
 
   async function uploadProductImage(id: string, file: File) {
@@ -132,6 +122,17 @@ export function AdminDashboard({
     const data = await response.json();
     setDraftProducts((current) => current.map((p) => (p.id === id ? data.product : p)));
   }
+  function handleProductSaved(saved: AdminProduct) {
+    setDraftProducts((current) => {
+      const idx = current.findIndex((p) => p.id === saved.id);
+      if (idx >= 0) {
+        const next = [...current];
+        next[idx] = saved;
+        return next;
+      }
+      return [saved, ...current];
+    });
+  }
   const [expandedSeoId, setExpandedSeoId] = useState<string | null>(null);
   const [seoDraft, setSeoDraft] = useState<Record<string, { seoTitle: string; seoDescription: string }>>({});
 
@@ -150,97 +151,6 @@ export function AdminDashboard({
 
     const data = await response.json();
     setDraftProducts((current) => current.map((p) => (p.id === id ? data.product : p)));
-  }
-
-  async function handleCreateProduct() {
-    setProductError(null);
-    const count = Number(newProduct.count);
-    const price = Number(newProduct.price);
-
-    if (
-      !newProduct.slug.trim() ||
-      !newProduct.nameRu.trim() ||
-      !newProduct.nameEn.trim() ||
-      !newProduct.size.trim() ||
-      !Number.isFinite(count) ||
-      count <= 0 ||
-      !Number.isFinite(price) ||
-      price < 0
-    ) {
-      setProductError(locale === "ru" ? "Заполните обязательные поля" : "Fill in the required fields");
-      return;
-    }
-
-    const bonusPoints = newProduct.bonusPoints.trim() ? Number(newProduct.bonusPoints) : undefined;
-    if (bonusPoints !== undefined && (!Number.isFinite(bonusPoints) || bonusPoints < 0)) {
-      setProductError(locale === "ru" ? "Некорректное количество бонусов" : "Invalid bonus points");
-      return;
-    }
-
-    const response = await csrfFetch("/api/admin/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slug: newProduct.slug,
-        sku: newProduct.sku.trim() || undefined,
-        nameRu: newProduct.nameRu,
-        nameEn: newProduct.nameEn,
-        category: newProduct.category,
-        line: newProduct.line,
-        size: newProduct.size,
-        count,
-        price,
-        bonusPoints,
-      }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null);
-      setProductError(
-        data?.error === "slug-taken"
-          ? locale === "ru"
-            ? "Такой slug уже используется"
-            : "Slug is already taken"
-          : locale === "ru"
-            ? "Не удалось создать товар"
-            : "Failed to create product",
-      );
-      return;
-    }
-
-    const data = await response.json();
-    let createdProduct = data.product;
-
-    if (newProductImages.length > 0) {
-      setUploadingImageId(createdProduct.id);
-      try {
-        for (const file of newProductImages) {
-          createdProduct = await uploadProductImage(createdProduct.id, file);
-        }
-      } catch {
-        setProductError(
-          locale === "ru" ? "Товар создан, но не удалось загрузить изображения" : "Product created, but image upload failed",
-        );
-      } finally {
-        setUploadingImageId(null);
-      }
-    }
-
-    setDraftProducts((current) => [createdProduct, ...current.filter((p) => p.id !== createdProduct.id)]);
-    setNewProduct({
-      slug: "",
-      sku: "",
-      nameRu: "",
-      nameEn: "",
-      category: "diapers",
-      line: "daily",
-      size: "",
-      count: "",
-      price: "",
-      bonusPoints: "",
-    });
-    setNewProductImages([]);
-    setShowNewProduct(false);
   }
 
   async function handleDeleteProduct(productId: string) {
@@ -686,7 +596,7 @@ export function AdminDashboard({
           {canManageProducts ? (
             <div className="mb-5">
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={() => setShowNewProduct((current) => !current)}>
+                <Button variant="secondary" onClick={() => setModalState({ mode: "create" })}>
                   <Plus className="h-4 w-4" />
                   {t("addProduct")}
                 </Button>
@@ -735,101 +645,7 @@ export function AdminDashboard({
                 </label>
               </div>
 
-              {showNewProduct ? (
-                <div className="mt-4 grid gap-3 rounded-lg border border-border bg-card/65 p-5 md:grid-cols-3">
-                  <Input
-                    placeholder="slug"
-                    value={newProduct.slug}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, slug: e.target.value }))}
-                  />
-                  <Input
-                    placeholder="SKU"
-                    value={newProduct.sku}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, sku: e.target.value }))}
-                  />
-                  <Input
-                    placeholder={locale === "ru" ? "Название RU" : "Name RU"}
-                    value={newProduct.nameRu}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, nameRu: e.target.value }))}
-                  />
-                  <Input
-                    placeholder={locale === "ru" ? "Название EN" : "Name EN"}
-                    value={newProduct.nameEn}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, nameEn: e.target.value }))}
-                  />
-                  <select
-                    value={newProduct.category}
-                    onChange={(e) =>
-                      setNewProduct((c) => ({ ...c, category: e.target.value as (typeof CATEGORIES)[number] }))
-                    }
-                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
-                  >
-                    {CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={newProduct.line}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, line: e.target.value as (typeof LINES)[number] }))}
-                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
-                  >
-                    {LINES.map((line) => (
-                      <option key={line} value={line}>
-                        {line}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    placeholder="size"
-                    value={newProduct.size}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, size: e.target.value }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder={locale === "ru" ? "Кол-во в упаковке" : "Count per pack"}
-                    value={newProduct.count}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, count: e.target.value }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder={locale === "ru" ? "Цена" : "Price"}
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, price: e.target.value }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder={locale === "ru" ? "Бонусы за покупку" : "Bonus points"}
-                    value={newProduct.bonusPoints}
-                    onChange={(e) => setNewProduct((c) => ({ ...c, bonusPoints: e.target.value }))}
-                  />
-                  <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground hover:border-bronze">
-                    <ImagePlus className="h-4 w-4" />
-                    {newProductImages.length > 0
-                      ? `${newProductImages.length} ${locale === "ru" ? "файл(ов)" : "file(s)"}`
-                      : locale === "ru"
-                        ? "Изображения"
-                        : "Images"}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => setNewProductImages(Array.from(e.target.files ?? []))}
-                    />
-                  </label>
-                  <Button onClick={handleCreateProduct} disabled={uploadingImageId !== null}>
-                    {uploadingImageId !== null
-                      ? locale === "ru"
-                        ? "Загрузка..."
-                        : "Uploading..."
-                      : locale === "ru"
-                        ? "Создать"
-                        : "Create"}
-                  </Button>
-                </div>
-              ) : null}
+
             </div>
           ) : null}
 
@@ -969,6 +785,16 @@ export function AdminDashboard({
                           />
                         </td>
                         <td className="py-4">
+                          {canManageProducts ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="mr-2"
+                              onClick={() => setModalState({ mode: "edit", product })}
+                            >
+                              {locale === "ru" ? "Изменить" : "Edit"}
+                            </Button>
+                          ) : null}
                           <Button
                             variant="secondary"
                             size="sm"
@@ -1041,7 +867,16 @@ export function AdminDashboard({
               </table>
             </div>
           </div>
-        </TabsContent>
+
+          {modalState && (
+            <ProductFormModal
+              mode={modalState.mode}
+              product={modalState.mode === "edit" ? modalState.product : undefined}
+              locale={locale}
+              onClose={() => setModalState(null)}
+              onSaved={handleProductSaved}
+            />
+          )}        </TabsContent>
 
         <TabsContent value="orders">
           {orderError ? <p className="mb-4 text-sm text-destructive">{orderError}</p> : null}
