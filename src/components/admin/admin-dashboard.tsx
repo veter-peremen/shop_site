@@ -36,8 +36,6 @@ import type { StoreSettings } from "@/lib/settings";
 import { formatCurrency, localizedProductName } from "@/lib/utils";
 import type { AdminUserRow } from "@/lib/users";
 
-const CATEGORIES = ["pants", "diapers"] as const;
-const LINES = ["premium", "ultrathin", "daily"] as const;
 
 export const ORDER_STATUSES = [
   "draft",
