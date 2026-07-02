@@ -68,7 +68,7 @@ export function ProductCard({
                 fill
                 priority={priority}
                 sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className="object-cover opacity-[0.92] saturate-[0.82] contrast-[0.96] transition duration-1000 group-hover:scale-110 group-hover:saturate-100"
+                className="object-cover opacity-[0.97] transition duration-1000 group-hover:scale-110"
                 style={{ objectPosition: "center bottom" }}
               />
             ) : null}

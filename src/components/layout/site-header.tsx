@@ -1,7 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { Heart, Menu, ShoppingBag, UserRound } from "lucide-react";
+import { Heart, Menu, ShoppingBag, UserRound, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -109,29 +110,72 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         </div>
       </div>
 
-      {open ? (
-        <div className="border-t border-border/70 bg-background/95 px-4 py-4 md:hidden">
-          <div className="grid gap-2">
-            {siteConfig.nav.map((item) => (
-              <Link
-                key={item.href}
-                href={`/${locale}${item.href}`}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="mobile-nav"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-[60] flex flex-col bg-background/97 backdrop-blur-2xl md:hidden"
+          >
+            <div className="flex h-[72px] items-center justify-between px-4">
+              <Logo locale={locale} />
+              <button
                 onClick={() => setOpen(false)}
-                className={cn(
-                  "rounded-full border border-border bg-card/70 px-4 py-3 text-sm transition",
-                  pathname === `/${locale}${item.href}` && "border-bronze/50 bg-secondary/80",
-                )}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/70 text-muted-foreground transition hover:bg-secondary"
+                aria-label="Close menu"
               >
-                {t(item.label)}
-              </Link>
-            ))}
-            <div className="flex gap-2 pt-2">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <motion.nav
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.28, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-1 flex-col justify-center gap-1 px-6"
+            >
+              {siteConfig.nav.map((item, idx) => (
+                <motion.div
+                  key={item.href}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + idx * 0.055, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <Link
+                    href={`/${locale}${item.href}`}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "block rounded-xl px-5 py-4 text-2xl font-light transition duration-200 hover:bg-secondary/70 hover:text-foreground",
+                      pathname === `/${locale}${item.href}`
+                        ? "text-foreground"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {t(item.label)}
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.nav>
+            <div className="flex items-center gap-3 px-6 pb-10 pt-6 border-t border-border/60">
               <ThemeToggle />
               <LanguageSwitcher locale={locale} />
+              <Button asChild variant="default" className="ml-auto">
+                <Link href={`/${locale}/cart`} onClick={() => setOpen(false)}>
+                  <ShoppingBag className="h-4 w-4" />
+                  {t("cart")}
+                  {mounted && cartCount > 0 ? (
+                    <span className="rounded-full bg-primary-foreground/15 px-2 py-0.5 text-xs">
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </Link>
+              </Button>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

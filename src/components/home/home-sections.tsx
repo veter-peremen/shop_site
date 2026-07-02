@@ -1,6 +1,5 @@
 "use client";
 
-import gsap from "gsap";
 import {
   motion,
   useMotionTemplate,
@@ -13,7 +12,7 @@ import { ArrowRight, Ban, Check, Clock, Droplets, ShieldCheck, Sparkles, Wind } 
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { ProductCard } from "@/components/product/product-card";
 import { Badge } from "@/components/ui/badge";
@@ -48,24 +47,6 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
     locale === "ru" ? "без отдушек" : "fragrance-free",
   ];
 
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const ctx = gsap.context(() => {
-      gsap.to(".quiet-particle", {
-        x: "random(-24, 24)",
-        y: "random(-18, 18)",
-        opacity: "random(0.18, 0.46)",
-        duration: "random(4, 8)",
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-        stagger: 0.12,
-      });
-    }, ref);
-
-    return () => ctx.revert();
-  }, []);
 
   return (
     <section
@@ -81,20 +62,10 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
     >
       <div className="soft-grid absolute inset-0 opacity-70" />
       <div className="silk-veil" />
-      <div className="grain-layer" />
       <span className="kinetic-line left-[9%] top-[22%]" />
       <span className="kinetic-line right-[14%] top-[18%]" />
       <span className="kinetic-line bottom-[18%] left-[42%]" />
-      {Array.from({ length: 16 }).map((_, index) => (
-        <span
-          key={index}
-          className="quiet-particle"
-          style={{
-            left: `${8 + ((index * 17) % 84)}%`,
-            top: `${14 + ((index * 23) % 62)}%`,
-          }}
-        />
-      ))}
+
 
       <div className="premium-shell relative grid min-h-[calc(100vh-72px)] items-center gap-10 py-12 lg:grid-cols-[0.92fr_1.08fr]">
         <motion.div
@@ -108,7 +79,7 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
             <span className="h-px w-8 bg-bronze/70" />
             {t("eyebrow")}
           </div>
-          <h1 className="mt-7 max-w-[760px] text-5xl font-light leading-[1.02] text-foreground sm:text-6xl xl:text-7xl">
+          <h1 className="mt-7 max-w-[760px] text-5xl font-normal leading-[1.02] text-foreground sm:text-6xl sm:font-light xl:text-7xl">
             <motion.span
               initial={{ opacity: 0, y: 28, filter: "blur(12px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -165,7 +136,7 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
                   fill
                   priority
                   sizes="(min-width: 1024px) 48vw, 92vw"
-                  className="object-cover opacity-[0.16] blur-[1px] saturate-[0.35] contrast-[0.82]"
+                  className="object-cover opacity-[0.22] blur-[2px] saturate-[0.28]"
                   style={{ objectPosition: "center bottom" }}
                 />
               ) : null}
@@ -382,7 +353,6 @@ export function ProductShowcase({ locale, products }: { locale: Locale; products
   return (
     <section className="relative overflow-hidden border-y border-border/70 bg-[linear-gradient(180deg,rgba(221,209,189,0.34),rgba(248,244,235,0.72)_42%,rgba(221,209,189,0.26))] py-28 dark:bg-[linear-gradient(180deg,rgba(38,34,30,0.68),rgba(30,27,24,0.92)_42%,rgba(51,44,37,0.48))]">
       <div className="soft-grid absolute inset-0 opacity-50" />
-      <div className="grain-layer" />
       <span className="kinetic-line right-[10%] top-[18%]" />
       <span className="kinetic-line bottom-[14%] left-[12%]" />
       <div className="premium-shell">
@@ -422,7 +392,7 @@ export function ProductShowcase({ locale, products }: { locale: Locale; products
                       alt={localizedProductName(lead, locale)}
                       fill
                       sizes="(min-width: 1024px) 58vw, 92vw"
-                      className="object-cover opacity-[0.9] saturate-[0.82] contrast-[0.96] transition duration-1000 group-hover:scale-105 group-hover:saturate-100"
+                      className="object-cover opacity-[0.97] transition duration-1000 group-hover:scale-105"
                       style={{ objectPosition: "center bottom" }}
                     />
                   ) : null}
