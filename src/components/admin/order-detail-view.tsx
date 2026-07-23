@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,10 @@ export function OrderDetailView({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [cdekUuid, setCdekUuid] = useState(order.cdekUuid ?? null);
+  const [cdekWaybill, setCdekWaybill] = useState(order.cdekWaybill ?? null);
+  const [cdekStatus, setCdekStatus] = useState(order.cdekStatus ?? null);
+  const [creatingCdek, setCreatingCdek] = useState(false);
 
   async function handleStatusChange(nextStatus: string) {
     setError(null);
@@ -86,6 +90,25 @@ export function OrderDetailView({
     }
 
     router.push(`/${locale}/admin`);
+  }
+
+  async function handleCreateCdekOrder() {
+    setError(null);
+    setMessage(null);
+    setCreatingCdek(true);
+    const response = await csrfFetch(`/api/cdek/order/${order.id}`, { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tariffCode: 139, weight: 500 }),
+    });
+    setCreatingCdek(false);
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      setError(data?.error ?? (locale === "ru" ? "Ошибка создания заказа СДЭК" : "Failed to create CDEK order"));
+      return;
+    }
+    const data = await response.json();
+    setCdekUuid(data.cdekUuid);
+    setMessage(locale === "ru" ? `Заказ СДЭК создан: ${data.cdekUuid}` : `CDEK order created: ${data.cdekUuid}`);
   }
 
   const deliveryMethodLabel = order.deliveryMethod
@@ -293,6 +316,27 @@ export function OrderDetailView({
                   </Button>
                 </div>
               </label>
+
+              <div className="grid gap-1 text-sm">
+                <span className="text-muted-foreground">СДЭК</span>
+                {cdekUuid ? (
+                  <div className="space-y-1 rounded-md bg-secondary/50 p-3 text-xs">
+                    <p><span className="text-muted-foreground">UUID: </span>{cdekUuid}</p>
+                    {cdekWaybill ? <p><span className="text-muted-foreground">Накладная: </span>{cdekWaybill}</p> : null}
+                    {cdekStatus ? <p><span className="text-muted-foreground">Статус: </span>{cdekStatus}</p> : null}
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    disabled={creatingCdek}
+                    onClick={handleCreateCdekOrder}
+                  >
+                    {creatingCdek
+                      ? (locale === "ru" ? "Создаётся..." : "Creating...")
+                      : (locale === "ru" ? "Создать заказ в СДЭК" : "Create CDEK order")}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         ) : null}
