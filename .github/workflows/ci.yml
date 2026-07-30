@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, design-improvements]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+
+      - name: Поставить Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Установить зависимости
+        run: npm ci
+
+      - name: Проверка типов и линт
+        run: npm run lint --if-present
+
+      - name: Сборка Next.js
+        run: npm run build
+        env:
+          # Next при сборке иногда читает env — даём заглушки,
+          # чтобы билд не падал. Реальные значения сюда не пишем.
+          DATABASE_URL: postgres://user:pass@localhost:5432/db
+          NEXT_PUBLIC_YANDEX_MAPS_KEY: dummy
+          CDEK_CLIENT_ID: dummy
+          CDEK_CLIENT_SECRET: dummy
