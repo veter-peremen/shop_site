@@ -47,8 +47,8 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <>
-      <HomeCatalogSection locale={locale} products={products} />
       <HeroSection locale={locale} featured={featured} />
+      <HomeCatalogSection locale={locale} products={products} />
       <StorySection locale={locale} />
       <CareDetailsSection locale={locale} />
       <WholesaleCtaSection locale={locale} />
