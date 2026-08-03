@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import type { Locale } from "@/i18n/routing";
 import type { SessionUser } from "@/lib/auth";
 import { csrfFetch } from "@/lib/csrf-client";
 import { formatCurrency, localizedProductName } from "@/lib/utils";
+import { CdekPickupButton, type CdekSelection } from "@/components/checkout/cdek-widget";
 import { useCommerceStore } from "@/store/commerce-store";
 import type { Product } from "@/types/product";
 
@@ -89,6 +90,7 @@ export function CheckoutClient({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [cdekSelection, setCdekSelection] = useState<CdekSelection | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -116,7 +118,7 @@ export function CheckoutClient({
   );
 
   const subtotal = lines.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const deliveryPrice = DELIVERY_PRICES[form.deliveryMethod];
+  const deliveryPrice = cdekSelection?.price ?? DELIVERY_PRICES[form.deliveryMethod];
 
   useEffect(() => {
     if (!promoCode || subtotal === 0) {
@@ -294,8 +296,6 @@ export function CheckoutClient({
 
           {step === "delivery" ? (
             <div className="space-y-4">
-              <Input placeholder={t("city")} value={form.city} onChange={(e) => updateForm("city", e.target.value)} />
-
               <div>
                 <p className="mb-2 text-sm text-muted-foreground">{t("deliveryMethod")}</p>
                 <div className="flex gap-3">
@@ -303,36 +303,75 @@ export function CheckoutClient({
                     <input
                       type="radio"
                       checked={form.deliveryMethod === "pickup"}
-                      onChange={() => updateForm("deliveryMethod", "pickup")}
+                      onChange={() => { updateForm("deliveryMethod", "pickup"); setCdekSelection(null); }}
                     />
-                    {t("pickup")} · {formatCurrency(DELIVERY_PRICES.pickup, locale)}
+                    {t("pickup")}
                   </label>
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="radio"
                       checked={form.deliveryMethod === "courier"}
-                      onChange={() => updateForm("deliveryMethod", "courier")}
+                      onChange={() => { updateForm("deliveryMethod", "courier"); setCdekSelection(null); }}
                     />
-                    {t("courier")} · {formatCurrency(DELIVERY_PRICES.courier, locale)}
+                    {t("courier")}
                   </label>
                 </div>
               </div>
 
-              {form.deliveryMethod === "courier" ? (
-                <Input
-                  placeholder={t("address")}
-                  value={form.address}
-                  onChange={(e) => updateForm("address", e.target.value)}
-                />
-              ) : (
-                <Input
-                  placeholder={t("pickupPoint")}
-                  value={form.pickupPoint}
-                  onChange={(e) => updateForm("pickupPoint", e.target.value)}
-                />
-              )}
+              {form.deliveryMethod === "pickup" ? (
+                <div className="space-y-3">
+                  <CdekPickupButton
+                    goods={[{ weight: 0.5, length: 20, width: 15, height: 10 }]}
+                    defaultCity={form.city || "Москва"}
+                    onChoose={(sel) => {
+                      setCdekSelection(sel);
+                      updateForm("city", sel.city);
+                      updateForm("pickupPoint", sel.pvzCode ?? sel.address);
+                      updateForm("address", "");
+                    }}
 
-              <p className="text-xs text-muted-foreground">{t("deliveryNote")}</p>
+                  />
+                  {cdekSelection ? (
+                    <div className="rounded-md bg-secondary/50 p-3 text-sm">
+                      <p className="font-medium">{cdekSelection.tariffName}</p>
+                      <p className="text-muted-foreground">{cdekSelection.city}, {cdekSelection.address}</p>
+                      <p className="mt-1">
+                        {formatCurrency(cdekSelection.price, locale)} · {cdekSelection.periodMin}–{cdekSelection.periodMax} {locale === "ru" ? "дней" : "days"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {locale === "ru" ? "Выберите пункт выдачи на карте" : "Select a pickup point on the map"}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Input placeholder={t("city")} value={form.city} onChange={(e) => updateForm("city", e.target.value)} />
+                  <Input
+                    placeholder={t("address")}
+                    value={form.address}
+                    onChange={(e) => updateForm("address", e.target.value)}
+                  />
+                  {cdekSelection ? (
+                    <div className="rounded-md bg-secondary/50 p-3 text-sm">
+                      <p className="font-medium">{cdekSelection.tariffName}</p>
+                      <p className="mt-1">
+                        {formatCurrency(cdekSelection.price, locale)} · {cdekSelection.periodMin}–{cdekSelection.periodMax} {locale === "ru" ? "дней" : "days"}
+                      </p>
+                    </div>
+                  ) : null}
+                  <CdekPickupButton
+                    goods={[{ weight: 0.5, length: 20, width: 15, height: 10 }]}
+                    defaultCity={form.city || "Москва"}
+                    label={locale === "ru" ? "Рассчитать доставку курьером" : "Calculate courier delivery"}
+                    onChoose={(sel) => {
+                      setCdekSelection(sel);
+                      updateForm("city", sel.city);
+                    }}
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setStep("contacts")}>

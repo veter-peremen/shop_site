@@ -1,11 +1,11 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+﻿import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import {
   HeroSection,
+  HomeCatalogSection,
   CareDetailsSection,
   LoyaltySection,
-  ProductShowcase,
   StorySection,
   WholesaleCtaSection,
 } from "@/components/home/home-sections";
@@ -43,18 +43,14 @@ export default async function HomePage({ params }: HomePageProps) {
   // Falls back gracefully if the DB isn't reachable at build time (e.g. a Docker
   // image build without a live DB) instead of failing the whole build.
   const products = await getAllProducts().catch(() => []);
-  const featured = products.find((product) => product.line === "premium" && product.size === "XL") || products[0];
-
-  if (!featured) {
-    notFound();
-  }
+  const featured = products[0] ?? null;
 
   return (
     <>
+      <HomeCatalogSection locale={locale} products={products} />
       <HeroSection locale={locale} featured={featured} />
       <StorySection locale={locale} />
       <CareDetailsSection locale={locale} />
-      <ProductShowcase locale={locale} products={products.slice(0, 4)} />
       <WholesaleCtaSection locale={locale} />
       <LoyaltySection locale={locale} />
     </>

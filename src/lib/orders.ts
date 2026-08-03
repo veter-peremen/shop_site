@@ -1,4 +1,4 @@
-import type { PoolClient } from "pg";
+﻿import type { PoolClient } from "pg";
 
 import { query, queryOne, withTransaction } from "@/lib/db";
 import { validateCartLines, type CartLineInput } from "@/lib/cart";
@@ -226,6 +226,9 @@ export type OrderDetail = OrderSummary & {
   deliveryAddress: string | null;
   deliveryPickupPoint: string | null;
   deliveryPrice: number;
+  cdekUuid: string | null;
+  cdekWaybill: string | null;
+  cdekStatus: string | null;
   items: OrderItemDetail[];
 };
 
@@ -238,6 +241,9 @@ type OrderDetailRow = OrderRow & {
   delivery_address: string | null;
   delivery_pickup_point: string | null;
   delivery_price: number;
+  cdek_uuid: string | null;
+  cdek_waybill: string | null;
+  cdek_status: string | null;
 };
 
 type OrderItemRow = {
@@ -255,6 +261,7 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
   const row = await queryOne<OrderDetailRow>(
     `select id, number, status, user_id, customer_name, customer_phone, customer_email, comment,
             city, delivery_method, delivery_address, delivery_pickup_point, delivery_price,
+            cdek_uuid, cdek_waybill, cdek_status,
             subtotal, discount, bonus_spent, bonus_earned, total, promo_code,
             payment_status, delivery_status, tracking_number, created_at
      from orders
@@ -282,6 +289,9 @@ export async function getOrderDetail(id: string): Promise<OrderDetail | null> {
     deliveryAddress: row.delivery_address,
     deliveryPickupPoint: row.delivery_pickup_point,
     deliveryPrice: row.delivery_price,
+    cdekUuid: row.cdek_uuid,
+    cdekWaybill: row.cdek_waybill,
+    cdekStatus: row.cdek_status,
     items: itemRows.map((item) => ({
       id: item.id,
       productId: item.product_id,
