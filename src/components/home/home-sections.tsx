@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   motion,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/utils";
 import type { Product } from "@/types/product";
 
-export function HeroSection({ locale, featured }: { locale: Locale; featured: Product }) {
+export function HeroSection({ locale, featured }: { locale: Locale; featured: Product | null }) {
   const t = useTranslations("home");
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -121,7 +121,7 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
           </div>
         </motion.div>
 
-        <motion.div
+        {featured ? <motion.div
           style={{ transform, y: heroProductY }}
           className="lift-card relative mx-auto w-full max-w-[680px]"
         >
@@ -201,7 +201,7 @@ export function HeroSection({ locale, featured }: { locale: Locale; featured: Pr
               <p className="mt-1 text-2xl font-light">{value}</p>
             </motion.div>
           ))}
-        </motion.div>
+        </motion.div> : null}
       </div>
       <div className="premium-shell pointer-events-none absolute inset-x-0 bottom-5 hidden lg:block">
         <div className="cinematic-mask overflow-hidden border-y border-border/70 py-3 text-xs uppercase text-muted-foreground">
@@ -691,6 +691,30 @@ export function LoyaltySection({ locale }: { locale: Locale }) {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+export function HomeCatalogSection({ locale, products }: { locale: Locale; products: Product[] }) {
+  return (
+    <section className="premium-shell py-16 sm:py-20">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <h2 className="text-3xl font-light sm:text-4xl">
+          {locale === "ru" ? "Каталог" : "Catalog"}
+        </h2>
+        <Link
+          href={`/${locale}/catalog`}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+        >
+          {locale === "ru" ? "Все товары" : "All products"}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} locale={locale} />
+        ))}
       </div>
     </section>
   );
