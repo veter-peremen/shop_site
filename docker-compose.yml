@@ -1,4 +1,4 @@
-name: sonkei
+﻿name: sonkei
 
 services:
   db:
@@ -24,11 +24,17 @@ services:
       context: .
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_YANDEX_MAPS_KEY: ${NEXT_PUBLIC_YANDEX_MAPS_KEY:-}
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://sonkei:sonkei@db:5432/sonkei?sslmode=disable}
       CAPTCHA_SECRET: ${CAPTCHA_SECRET:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       NODE_ENV: production
+      CDEK_CLIENT_ID: ${CDEK_CLIENT_ID:-}
+      CDEK_CLIENT_SECRET: ${CDEK_CLIENT_SECRET:-}
+      CDEK_SENDER_CITY_CODE: ${CDEK_SENDER_CITY_CODE:-44}
+      CDEK_WEBHOOK_SECRET: ${CDEK_WEBHOOK_SECRET:-}
+      CDEK_API_URL: ${CDEK_API_URL:-https://api.cdek.ru/v2}
     volumes:
       - sonkei_uploads_data:/app/uploads
     ports:

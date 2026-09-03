@@ -1,4 +1,4 @@
--- SONKEI e-commerce schema (PostgreSQL / Neon)
+﻿-- SONKEI e-commerce schema (PostgreSQL / Neon)
 -- Raw SQL only, no ORM. Run via `npm run db:migrate`.
 
 create extension if not exists "pgcrypto";
@@ -173,6 +173,10 @@ create table if not exists orders (
 );
 
 alter table orders add column if not exists paid_at timestamptz;
+alter table orders add column if not exists cdek_uuid    text;
+alter table orders add column if not exists cdek_waybill text;
+alter table orders add column if not exists cdek_status  text;
+create index if not exists idx_orders_cdek_uuid on orders(cdek_uuid) where cdek_uuid is not null;
 
 create index if not exists idx_orders_user_id on orders (user_id);
 create index if not exists idx_orders_status on orders (status);

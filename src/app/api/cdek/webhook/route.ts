@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+﻿import { type NextRequest, NextResponse } from "next/server";
 
 import { query } from "@/lib/db";
 
@@ -17,6 +17,16 @@ interface CdekWebhookPayload {
 }
 
 export async function POST(req: NextRequest) {
+  // Verify shared secret (set CDEK_WEBHOOK_SECRET in env and register webhook URL with ?secret=<value>)
+  const WEBHOOK_SECRET = process.env.CDEK_WEBHOOK_SECRET;
+  if (WEBHOOK_SECRET) {
+    const provided =
+      req.nextUrl.searchParams.get("secret") ?? req.headers.get("x-webhook-secret");
+    if (!provided || provided !== WEBHOOK_SECRET) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+  }
+
   let payload: CdekWebhookPayload;
   try {
     payload = await req.json();

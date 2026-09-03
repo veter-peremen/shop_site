@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 type Bucket = { timestamps: number[] };
 
@@ -45,10 +45,15 @@ export function rateLimit(
 }
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+  // X-Real-IP is set by the trusted reverse proxy (nginx) and cannot be spoofed by clients
   const real = request.headers.get("x-real-ip");
-  if (real) return real;
+  if (real) return real.trim();
+  // Fallback: rightmost value in X-Forwarded-For is appended by the trusted proxy
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    return parts[parts.length - 1];
+  }
   return "unknown";
 }
 
